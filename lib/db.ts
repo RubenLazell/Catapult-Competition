@@ -1,5 +1,6 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import type { Trial } from "./types";
+import { normalizeDesign, type DesignSpace } from "./design";
 
 // Server-only. DATABASE_URL is set automatically when Neon is added to the Vercel project.
 type Sql = NeonQueryFunction<false, false>;
@@ -8,8 +9,8 @@ let sql: Sql | null = null;
 let schemaReady: Promise<unknown> | null = null;
 
 // Keep in sync with db/schema.sql.
-function ensureSchema(db: Sql) {
-  schemaReady ??= db`
+async function createTables(db: Sql) {
+  await db`
     create table if not exists trials (
       id          bigint generated always as identity primary key,
       created_at  timestamptz not null default now(),
@@ -21,7 +22,17 @@ function ensureSchema(db: Sql) {
       distance_in numeric not null,
       surface     text not null default 'hard',
       notes       text
-    )`.catch((e) => {
+    )`;
+  await db`
+    create table if not exists design_config (
+      id         int primary key default 1 check (id = 1),
+      config     jsonb not null,
+      updated_at timestamptz not null default now()
+    )`;
+}
+
+function ensureSchema(db: Sql) {
+  schemaReady ??= createTables(db).catch((e) => {
     schemaReady = null;
     throw e;
   });
@@ -46,4 +57,15 @@ export async function listTrials(db: Sql): Promise<Trial[]> {
     from trials
     order by created_at desc, id desc`;
   return rows as Trial[];
+}
+
+export async function getDesign(db: Sql): Promise<DesignSpace> {
+  const rows = await db`select config from design_config where id = 1`;
+  return normalizeDesign(rows[0]?.config);
+}
+
+export async function saveDesign(db: Sql, design: DesignSpace): Promise<void> {
+  await db`
+    insert into design_config (id, config) values (1, ${JSON.stringify(design)}::jsonb)
+    on conflict (id) do update set config = excluded.config, updated_at = now()`;
 }

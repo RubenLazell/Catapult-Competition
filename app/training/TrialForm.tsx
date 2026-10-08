@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { addTrials, type ActionResult } from "./actions";
 import { parseDistances } from "../../lib/parse";
 
-export default function TrialForm() {
+export type Prefill = { draw: number; front: number; stop: number; shots: number; nonce: number };
+
+export default function TrialForm({ prefill }: { prefill: Prefill | null }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [fields, setFields] = useState({
     session: "",
     shooter: "",
@@ -17,6 +20,20 @@ export default function TrialForm() {
   const [distances, setDistances] = useState("");
   const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Apply a suggestion from the Next trial shot panel.
+  useEffect(() => {
+    if (!prefill) return;
+    setFields((f) => ({
+      ...f,
+      draw_angle: String(prefill.draw),
+      front_pin: String(prefill.front),
+      stop_pin: String(prefill.stop),
+      surface: "hard",
+    }));
+    setResult(null);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [prefill]);
 
   const parsed = parseDistances(distances);
   const set = (k: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -34,11 +51,17 @@ export default function TrialForm() {
   }
 
   return (
-    <form className="card" onSubmit={onSubmit}>
+    <form className="card" onSubmit={onSubmit} ref={formRef}>
       <h2>Log trial shots</h2>
       <p className="muted small">
         Enter the settings once, then every measured distance shot at those settings.
       </p>
+      {prefill && !result && (
+        <div className="banner">
+          Settings filled from the suggestion. Shoot {prefill.shots} shot{prefill.shots === 1 ? "" : "s"}, then enter
+          the distances below.
+        </div>
+      )}
 
       <div className="form-grid">
         <Field label="Draw angle (°)" hint="read from the side scale">

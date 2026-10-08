@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getDb, NOT_CONFIGURED } from "../../lib/db";
+import { getDb, NOT_CONFIGURED, saveDesign } from "../../lib/db";
+import { normalizeDesign, validateDesign } from "../../lib/design";
 import { parseDistances } from "../../lib/parse";
 
 export type ActionResult = { ok?: string; error?: string };
@@ -46,6 +47,21 @@ export async function addTrials(fd: FormData): Promise<ActionResult> {
 
   revalidatePath("/training");
   return { ok: `Saved ${values.length} shot${values.length === 1 ? "" : "s"}.` };
+}
+
+export async function updateDesign(fd: FormData): Promise<ActionResult> {
+  const design = normalizeDesign(Object.fromEntries(fd));
+  const invalid = validateDesign(design);
+  if (invalid) return { error: invalid };
+  try {
+    const db = await getDb();
+    if (!db) return { error: NOT_CONFIGURED };
+    await saveDesign(db, design);
+  } catch (e) {
+    return { error: message(e) };
+  }
+  revalidatePath("/training");
+  return { ok: "Design space saved." };
 }
 
 export async function deleteTrial(id: number): Promise<ActionResult> {

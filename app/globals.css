@@ -120,3 +120,13 @@ th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background
   .settings-grid { grid-template-columns: 1fr; }
   .brand { font-size: 0.95rem; }
 }
+
+.pill { font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.65rem; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+.settings-grid.four { grid-template-columns: repeat(4, 1fr); }
+details { margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.6rem; }
+summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+summary:hover { color: var(--text); }
+details[open] summary { margin-bottom: 0.6rem; }
+@media (max-width: 520px) {
+  .settings-grid.four { grid-template-columns: 1fr 1fr; }
+}

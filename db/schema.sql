@@ -11,3 +11,10 @@ create table if not exists trials (
   surface     text not null default 'hard',  -- floor type
   notes       text
 );
+
+-- Design space for the next-shot recommender (single shared row).
+create table if not exists design_config (
+  id         int primary key default 1 check (id = 1),
+  config     jsonb not null,
+  updated_at timestamptz not null default now()
+);

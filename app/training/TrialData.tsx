@@ -126,7 +126,9 @@ export default function TrialData({ trials }: { trials: Trial[] }) {
               {trials.map((t) => (
                 <tr key={t.id}>
                   <td>{t.id}</td>
-                  <td className="nowrap">{new Date(t.created_at).toLocaleString()}</td>
+                  <td className="nowrap" suppressHydrationWarning>
+                    {new Date(t.created_at).toLocaleString()}
+                  </td>
                   <td>{t.session ?? ""}</td>
                   <td>{t.shooter ?? ""}</td>
                   <td>{t.draw_angle}</td>
