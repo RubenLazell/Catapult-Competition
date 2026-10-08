@@ -246,6 +246,6 @@ export function planNextShot(trials: Trial[], design: DesignSpace, seed: number)
     ...base,
     phase: "done",
     suggestions: [],
-    message: "Data collection plan complete. Ready to fit the regression model. Keep shooting random settings to check the model.",
+    message: "Data collection plan complete. The Predict page refits the model from these shots automatically. Keep shooting random targets to check it.",
   };
 }

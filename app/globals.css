@@ -357,3 +357,4 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 button:disabled { background: var(--surface-strong); color: var(--muted); opacity: 1; }
 button.secondary:disabled, button.link:disabled { background: transparent; opacity: 0.4; }
 .form-grid > .field { justify-content: flex-end; }
+.nocase { text-transform: none; }

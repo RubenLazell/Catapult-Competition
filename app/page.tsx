@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { predictSettings, TARGET_MAX, TARGET_MIN, type Prediction } from "../lib/model";
+import { useRef, useState, useTransition } from "react";
+import { predict } from "./actions";
+import { TARGET_MAX, TARGET_MIN, type Prediction } from "../lib/model";
+import Result from "../components/PredictResult";
 
 export default function PredictPage() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<Prediction | null>(null);
   const [runs, setRuns] = useState(0);
+  const [pending, startTransition] = useTransition();
+  const latest = useRef(0);
 
   const target = Number(input);
   const valid = input.trim() !== "" && Number.isFinite(target) && target > 0;
@@ -14,9 +18,14 @@ export default function PredictPage() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!valid) return;
-    setResult(predictSettings(target));
-    setRuns(runs + 1); // remount the result so it animates in again
+    if (!valid || pending) return;
+    const run = ++latest.current;
+    startTransition(async () => {
+      const res = await predict(target);
+      if (run !== latest.current) return; // a newer request superseded this one
+      setResult(res);
+      setRuns(run); // remount the result so it animates in again
+    });
   }
 
   return (
@@ -46,90 +55,17 @@ export default function PredictPage() {
             />
             <span className="unit">in</span>
           </div>
-          <button type="submit" disabled={!valid}>
-            Get settings
+          <button type="submit" disabled={!valid || pending}>
+            {pending ? "Fitting…" : "Get settings"}
           </button>
         </div>
         {outOfRange && (
-          <p className="warn">
-            Outside the competition range ({TARGET_MIN}–{TARGET_MAX}″). The prediction will be extrapolated.
-          </p>
+          <p className="warn">Outside the competition range ({TARGET_MIN}–{TARGET_MAX}″).</p>
         )}
       </form>
 
       {result && <Result key={runs} result={result} />}
     </>
-  );
-}
-
-function Result({ result }: { result: Prediction }) {
-  const options = result.status === "ok" ? result.options : null;
-  const best = options?.[0];
-  return (
-    <section className="card reveal">
-      <h2>Settings for {result.target}″</h2>
-      {result.status === "untrained" && (
-        <div className="banner">
-          <strong>Model not trained yet.</strong> These are placeholders. Log trials on the Training page.
-          Settings will appear here once the regression model is fitted.
-        </div>
-      )}
-
-      <div className="settings-grid">
-        <Setting label="Draw angle" value={best ? `${best.drawAngle.toFixed(1)}°` : "—"} />
-        <Setting label="Front pin" value={best ? String(best.frontPin) : "—"} />
-        <Setting label="Stop pin" value={best ? String(best.stopPin) : "—"} />
-      </div>
-
-      <h3>All valid options</h3>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Front pin</th>
-              <th>Stop pin</th>
-              <th>Draw angle</th>
-              <th>Predicted</th>
-              <th>Shot σ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {options ? (
-              options.map((o, i) => (
-                <tr key={i}>
-                  <td>{o.frontPin}</td>
-                  <td>{o.stopPin}</td>
-                  <td>{o.drawAngle.toFixed(1)}°</td>
-                  <td>{o.predicted.toFixed(2)}″</td>
-                  <td>±{o.sigma.toFixed(2)}″</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <p className="muted small">
-        Options will be ranked by expected accuracy. The best pin combination is the one where the target sits
-        well inside the tested draw range and shot-to-shot variation is lowest.
-      </p>
-    </section>
-  );
-}
-
-function Setting({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="setting">
-      <div className="setting-label">{label}</div>
-      <div className="setting-value">{value}</div>
-    </div>
   );
 }
 

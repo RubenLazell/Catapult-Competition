@@ -10,7 +10,7 @@ const LINKS = [
 
 export default function Nav() {
   const pathname = usePathname();
-  const index = Math.max(0, LINKS.findIndex((l) => l.href === pathname));
+  const index = LINKS.findIndex((l) => l.href === pathname);
   return (
     <header className="nav">
       <div className="nav-inner">
@@ -19,7 +19,7 @@ export default function Nav() {
           <span>Catapult Control</span>
         </Link>
         <nav className="tabs" style={{ "--tab-count": LINKS.length, "--tab-index": index } as React.CSSProperties}>
-          <span className="tab-indicator" aria-hidden />
+          <span className="tab-indicator" aria-hidden style={{ opacity: index < 0 ? 0 : 1 }} />
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className={pathname === l.href ? "active" : ""}>
               {l.label}
