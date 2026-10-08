@@ -21,8 +21,9 @@ export default async function TrainingPage() {
   const { trials, design, error } = await load();
   return (
     <>
+      <div className="eyebrow">Characterize the machine</div>
       <h1>Training</h1>
-      <p className="muted">
+      <p className="lede">
         Log trial shots to characterize the catapult. This data will be used to fit the regression model behind the
         Predict page.
       </p>

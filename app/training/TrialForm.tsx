@@ -64,13 +64,13 @@ export default function TrialForm({ prefill }: { prefill: Prefill | null }) {
       )}
 
       <div className="form-grid">
-        <Field label="Draw angle (°)" hint="read from the side scale">
+        <Field label="Draw angle (°)">
           <input name="draw_angle" type="number" step="any" required value={fields.draw_angle} onChange={set("draw_angle")} />
         </Field>
-        <Field label="Front pin position" hint="hole number">
+        <Field label="Front pin" hint="hole #">
           <input name="front_pin" type="number" min={1} step={1} required value={fields.front_pin} onChange={set("front_pin")} />
         </Field>
-        <Field label="Stop pin position" hint="hole number">
+        <Field label="Stop pin" hint="hole #">
           <input name="stop_pin" type="number" min={1} step={1} required value={fields.stop_pin} onChange={set("stop_pin")} />
         </Field>
         <Field label="Surface">
@@ -80,8 +80,8 @@ export default function TrialForm({ prefill }: { prefill: Prefill | null }) {
             <option value="other">Other</option>
           </select>
         </Field>
-        <Field label="Session" hint="optional, e.g. 'Oct 12 DOE'">
-          <input name="session" value={fields.session} onChange={set("session")} />
+        <Field label="Session" hint="optional">
+          <input name="session" placeholder="e.g. Oct 12 DOE" value={fields.session} onChange={set("session")} />
         </Field>
         <Field label="Shooter" hint="optional">
           <input name="shooter" value={fields.shooter} onChange={set("shooter")} />
