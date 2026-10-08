@@ -1,5 +1,5 @@
--- Run this once in the Supabase SQL Editor.
-create table if not exists public.trials (
+-- Reference only: the app creates this table automatically on first use (lib/db.ts).
+create table if not exists trials (
   id          bigint generated always as identity primary key,
   created_at  timestamptz not null default now(),
   session     text,                          -- e.g. "Oct 12 basement DOE"
@@ -11,8 +11,3 @@ create table if not exists public.trials (
   surface     text not null default 'hard',  -- floor type
   notes       text
 );
-
-create index if not exists trials_settings_idx on public.trials (front_pin, stop_pin, draw_angle);
-
--- RLS on with no policies: only the server (secret/service key) can read or write.
-alter table public.trials enable row level security;

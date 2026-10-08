@@ -3,17 +3,17 @@
 Team site for the Six Sigma catapult competition.
 
 - **Predict** (`/`): enter a target distance and get draw angle, front pin and stop pin settings. Placeholder output until the model is fitted (`lib/model.ts`).
-- **Training** (`/training`): planned regression model, trial-shot entry, per-setting summary stats, CSV export. Trials are stored in Supabase.
+- **Training** (`/training`): planned regression model, trial-shot entry, per-setting summary stats, CSV export. Trials are stored in Postgres (Neon, free tier).
 
 ## Setup
 
-1. **Supabase**: create a project, open *SQL Editor*, and run `supabase/schema.sql`.
-2. Copy `.env.example` to `.env.local` and fill in `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (Project Settings → API).
-3. `npm install` then `npm run dev` and open http://localhost:3000.
+1. **GitHub**: push this repo.
+2. **Vercel**: *Add New → Project*, import the repo, deploy.
+3. **Database**: in the Vercel project open *Storage → Create Database → Neon* (free), connect it to the project, then redeploy. This sets `DATABASE_URL`; the `trials` table is created automatically on first use (schema in `db/schema.sql`).
 
-## Deploy
+### Local dev
 
-Push to GitHub, import the repo in Vercel, and add the same two environment variables in the Vercel project settings.
+Copy `.env.example` to `.env.local`, paste the `DATABASE_URL` from Neon (or run `vercel env pull`), then `npm install` and `npm run dev`.
 
 ## Fitting the model later
 

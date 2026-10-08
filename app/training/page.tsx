@@ -1,4 +1,4 @@
-import { getSupabase } from "../../lib/supabase";
+import { getDb, listTrials, NOT_CONFIGURED } from "../../lib/db";
 import type { Trial } from "../../lib/types";
 import TrialForm from "./TrialForm";
 import TrialData from "./TrialData";
@@ -6,11 +6,13 @@ import TrialData from "./TrialData";
 export const dynamic = "force-dynamic";
 
 async function loadTrials(): Promise<{ trials: Trial[]; error: string | null }> {
-  const sb = getSupabase();
-  if (!sb) return { trials: [], error: "Supabase is not configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY." };
-  const { data, error } = await sb.from("trials").select("*").order("created_at", { ascending: false });
-  if (error) return { trials: [], error: error.message };
-  return { trials: data as Trial[], error: null };
+  try {
+    const db = await getDb();
+    if (!db) return { trials: [], error: NOT_CONFIGURED };
+    return { trials: await listTrials(db), error: null };
+  } catch (e) {
+    return { trials: [], error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export default async function TrainingPage() {
