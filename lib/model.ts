@@ -1,8 +1,11 @@
 // Regression model of the catapult, refit from the logged trials on demand.
 //
-//   Distance = β₀ + β₁·D + β₂·D² + Σ γ·Front_f + Σ δ·Stop_s + Σ λ·(D × Front_f) + Σ μ·(D × Stop_s) + ε
+//   Distance = β₀ + β₁·D + β₂·D² + Σ γ·Front_f + Σ δ·Stop_s + Σ λ·(D × Front_f) + Σ μ·(D × Stop_s)
+//              + Σ θ·(Front_f × Stop_s) + ε
 //
 // D is the draw angle centred on its mean. Pins are dummy-coded against the lowest pin seen in the data.
+// Front × Stop terms are only added for pin pairs with MIN_COMBO_SHOTS+ shots, so a single stray shot can't
+// get a term that fits it exactly; if they leave too few residual degrees of freedom the additive fit is used.
 // predictSettings() back-solves for D on every pin combination that has been tested, staying inside the
 // draw range actually shot with that combination, and ranks the options by expected error.
 
@@ -105,33 +108,47 @@ export function fitModel(trials: Trial[]): ModelResult {
   const [baseStop, ...otherStops] = stops;
   const center = data.reduce((a, d) => a + d.draw, 0) / data.length;
 
-  const names = [
-    "Intercept",
-    "Draw",
-    "Draw²",
-    ...otherFronts.map((f) => `Front ${f}`),
-    ...otherStops.map((s) => `Stop ${s}`),
-    ...otherFronts.map((f) => `Draw × Front ${f}`),
-    ...otherStops.map((s) => `Draw × Stop ${s}`),
-  ];
-  const row = (front: number, stop: number, draw: number) => {
-    const d = draw - center;
-    return [
-      1,
-      d,
-      d * d,
-      ...otherFronts.map((f) => (front === f ? 1 : 0)),
-      ...otherStops.map((s) => (stop === s ? 1 : 0)),
-      ...otherFronts.map((f) => (front === f ? d : 0)),
-      ...otherStops.map((s) => (stop === s ? d : 0)),
+  const comboCounts = groupBy(data, (d) => `${d.front}|${d.stop}`);
+  const pinPairs = otherFronts.flatMap((f) =>
+    otherStops
+      .filter((s) => (comboCounts.get(`${f}|${s}`)?.length ?? 0) >= MIN_COMBO_SHOTS)
+      .map((s) => [f, s] as const),
+  );
+
+  const build = (pairs: (readonly [number, number])[]) => {
+    const names = [
+      "Intercept",
+      "Draw",
+      "Draw²",
+      ...otherFronts.map((f) => `Front ${f}`),
+      ...otherStops.map((s) => `Stop ${s}`),
+      ...otherFronts.map((f) => `Draw × Front ${f}`),
+      ...otherStops.map((s) => `Draw × Stop ${s}`),
+      ...pairs.map(([f, s]) => `Front ${f} × Stop ${s}`),
     ];
+    const row = (front: number, stop: number, draw: number) => {
+      const d = draw - center;
+      return [
+        1,
+        d,
+        d * d,
+        ...otherFronts.map((f) => (front === f ? 1 : 0)),
+        ...otherStops.map((s) => (stop === s ? 1 : 0)),
+        ...otherFronts.map((f) => (front === f ? d : 0)),
+        ...otherStops.map((s) => (stop === s ? d : 0)),
+        ...pairs.map(([f, s]) => (front === f && stop === s ? 1 : 0)),
+      ];
+    };
+    const fit = fitOLS(
+      data.map((d) => row(d.front, d.stop, d.draw)),
+      data.map((d) => d.y),
+      names,
+    );
+    return { fit, row };
   };
 
-  const fit = fitOLS(
-    data.map((d) => row(d.front, d.stop, d.draw)),
-    data.map((d) => d.y),
-    names,
-  );
+  let { fit, row } = build(pinPairs);
+  if (pinPairs.length && (!fit || fit.dfResid < 3)) ({ fit, row } = build([]));
   if (!fit || fit.dfResid < 3) {
     return { ok: false, n: data.length, reason: `Not enough shots to estimate the model yet (have ${data.length}). Keep logging.` };
   }
@@ -139,7 +156,7 @@ export function fitModel(trials: Trial[]): ModelResult {
   const settingGroups = groupBy(data, (d) => `${d.front}|${d.stop}|${d.draw}`);
   const pure = pooledSd([...settingGroups.values()].map((g) => g.map((d) => d.y)));
 
-  const combos: ComboFit[] = [...groupBy(data, (d) => `${d.front}|${d.stop}`).values()].map((g) => {
+  const combos: ComboFit[] = [...comboCounts.values()].map((g) => {
     const draws = g.map((d) => d.draw);
     const reps = pooledSd([...groupBy(g, (d) => String(d.draw)).values()].map((s) => s.map((d) => d.y)));
     return {

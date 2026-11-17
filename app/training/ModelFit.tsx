@@ -15,7 +15,7 @@ export default function ModelFit({ trials }: { trials: Trial[] }) {
         <strong>stop pin</strong> positions (dummy variables), refit from every hard-floor shot whenever Predict is
         used:
       </p>
-      <pre className="formula">Distance = β₀ + β₁·D + β₂·D² + pin effects + D × pin effects + ε</pre>
+      <pre className="formula">Distance = β₀ + β₁·D + β₂·D² + pin effects + D × pin effects + front × stop + ε</pre>
 
       {!result.ok ? (
         <div className="banner">{result.reason}</div>
